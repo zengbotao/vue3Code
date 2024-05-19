@@ -66,6 +66,8 @@ export function baseCompile(
   source: string | RootNode,
   options: CompilerOptions = {},
 ): CodegenResult {
+  console.log(source, options, 'baseCompile')
+
   const onError = options.onError || defaultOnError
   const isModuleMode = options.mode === 'module'
   /* istanbul ignore if */
@@ -89,6 +91,7 @@ export function baseCompile(
   const resolvedOptions = extend({}, options, {
     prefixIdentifiers,
   })
+  //vue模板-》AST
   const ast = isString(source) ? baseParse(source, resolvedOptions) : source
   const [nodeTransforms, directiveTransforms] =
     getBaseTransformPreset(prefixIdentifiers)
@@ -100,6 +103,7 @@ export function baseCompile(
     }
   }
 
+  console.log(ast)
   transform(
     ast,
     extend({}, resolvedOptions, {
@@ -114,6 +118,7 @@ export function baseCompile(
       ),
     }),
   )
+  console.log(ast, 'transformed', resolvedOptions)
 
   return generate(ast, resolvedOptions)
 }

@@ -104,16 +104,15 @@ function compileToFunction(
   // with keys that cannot be mangled, and can be quite heavy size-wise.
   // In the global build we know `Vue` is available globally so we can avoid
   // the wildcard object.
+  console.log(code, ' const render')
   const render = (
     __GLOBAL__ ? new Function(code)() : new Function('Vue', code)(runtimeDom)
   ) as RenderFunction
-
-  // mark the function as runtime compiled
-  ;(render as InternalRenderFunction)._rc = true
+  console.log(render, 'render')
+  // mark the function as runtime compiled(render as InternalRenderFunction)._rc = true
 
   return (cache[key] = render)
 }
-
 registerRuntimeCompiler(compileToFunction)
 
 export { compileToFunction as compile }

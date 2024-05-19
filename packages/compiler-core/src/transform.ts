@@ -319,13 +319,21 @@ export function createTransformContext(
 
   return context
 }
-
+// root: Vue组件的AST根节点，包含了整个组件的结构信息。
+// options: 转换选项，它包含了诸如是否提取静态内容（hoistStatic）、是否进行服务器端渲染（ssr）等编译选项。
 export function transform(root: RootNode, options: TransformOptions) {
+  //创建一个转换上下文，用于存储在转换过程中需要的信息和帮助器函数。
   const context = createTransformContext(root, options)
+
+  //遍历AST节点，应用转换逻辑。**********
   traverseNode(root, context)
+
   if (options.hoistStatic) {
+    //如果options.hoistStatic为true，则提升静态节点，即将不会改变的静态内容提前到组件的最外层，以减少DOM操作。
     hoistStatic(root, context)
   }
+
+  //如果不是服务器端渲染，生成代码生成器
   if (!options.ssr) {
     createRootCodegen(root, context)
   }
@@ -344,9 +352,13 @@ export function transform(root: RootNode, options: TransformOptions) {
   }
 }
 
+//对Vue组件的AST（抽象语法树）进行转换，以优化渲染性能和生成高效的代码
 function createRootCodegen(root: RootNode, context: TransformContext) {
   const { helper } = context
   const { children } = root
+
+  // 只支持有一个根节点
+  // 并且还是一个 single text node
   if (children.length === 1) {
     const child = children[0]
     // if the single child is an element, turn it into a block.

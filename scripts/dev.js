@@ -18,7 +18,7 @@ const targets = args._.length ? args._ : ['vue']
 const format = args.f || 'global'
 const prod = args.p || false
 const inlineDeps = args.i || args.inline
-
+console.log(args, targets)
 // resolve output
 const outputFormat = format.startsWith('global')
   ? 'iife'
@@ -97,7 +97,10 @@ for (const target of targets) {
   if (format !== 'cjs' && pkg.buildOptions?.enableNonBrowserBranches) {
     plugins.push(polyfillNode())
   }
-
+  console.log(
+    resolve(__dirname, `../packages/${target}/src/index.ts`),
+    'entryPoints',
+  )
   esbuild
     .context({
       entryPoints: [resolve(__dirname, `../packages/${target}/src/index.ts`)],

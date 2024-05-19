@@ -279,6 +279,29 @@ export function generate(
   } = {},
 ): CodegenResult {
   const context = createCodegenContext(ast, options)
+  console.log(context, 'createCodegenContext(ast, options)')
+  //   {
+  //     "mode": "function",
+  //     "prefixIdentifiers": false,
+  //     "sourceMap": false,
+  //     "filename": "template.vue.html",
+  //     "scopeId": null,
+  //     "optimizeImports": false,
+  //     "runtimeGlobalName": "Vue",
+  //     "runtimeModuleName": "vue",
+  //     "ssrRuntimeModuleName": "vue/server-renderer",
+  //     "ssr": false,
+  //     "isTS": false,
+  //     "inSSR": false,
+  //     "source": "\n\t\t\t<div v-for=\"(i ,index) in [1,2,3]\" :key=\"index\">\n\t\t\t\t{{ message+i }}\n\t\t\t\t<span>111</span>\n\t\t\t</div>\n\t\t",
+  //     "code": "const _Vue = Vue\nconst { createElementVNode: _createElementVNode, createTextVNode: _createTextVNode } = _Vue\n\nconst _hoisted_1 = /*#__PURE__*/_createElementVNode(\"span\", null, \"111\", -1 /* HOISTED */)\n\nreturn function render(_ctx, _cache) {\n  with (_ctx) {\n    const { renderList: _renderList, Fragment: _Fragment, openBlock: _openBlock, createElementBlock: _createElementBlock, toDisplayString: _toDisplayString, createElementVNode: _createElementVNode, createTextVNode: _createTextVNode } = _Vue\n\n    return (_openBlock(true), _createElementBlock(_Fragment, null, _renderList([1,2,3], (i, index) => {\n      return (_openBlock(), _createElementBlock(\"div\", { key: index }, [\n        _createTextVNode(_toDisplayString(message+i) + \" \", 1 /* TEXT */),\n        _hoisted_1\n      ]))\n    }), 128 /* KEYED_FRAGMENT */))\n  }\n}",
+  //     "column": 1,
+  //     "line": 1,
+  //     "offset": 0,
+  //     "indentLevel": 0,
+  //     "pure": false,
+  //      ...
+  // }
   if (options.onContextCreated) options.onContextCreated(context)
   const {
     mode,
@@ -303,6 +326,8 @@ export function generate(
   const preambleContext = isSetupInlined
     ? createCodegenContext(ast, options)
     : context
+  console.log(createCodegenContext(ast, options))
+
   if (!__BROWSER__ && mode === 'module') {
     genModulePreamble(ast, preambleContext, genScopeId, isSetupInlined)
   } else {
@@ -320,6 +345,7 @@ export function generate(
       ? args.map(arg => `${arg}: any`).join(',')
       : args.join(', ')
 
+  // 开始生成 vnode tree 的表达式
   if (isSetupInlined) {
     push(`(${signature}) => {`)
   } else {
@@ -387,14 +413,66 @@ export function generate(
   }
 
   deindent()
-  push(`}`)
+  console.log('preambleContext.code', preambleContext.code)
 
+  push(`}`) //
+
+  console.log(preambleContext.code, context.code, context.map)
   return {
     ast,
     code: context.code,
     preamble: isSetupInlined ? preambleContext.code : ``,
     map: context.map ? context.map.toJSON() : undefined,
   }
+  //返回一个对象，包含AST、生成的代码、模块预声明（如果是内联模式）和源映射（如果启用）
+  // preambleContext.code就是下面的代码，返回一个render函数
+  //const _Vue = Vue
+  // const {
+  //   createElementVNode: _createElementVNode,
+  //   createTextVNode: _createTextVNode,
+  // } = _Vue
+
+  // const _hoisted_1 = /*#__PURE__*/ _createElementVNode(
+  //   'span',
+  //   null,
+  //   '111',
+  //   -1 /* HOISTED */,
+  // )
+
+  // return function render(_ctx, _cache) {
+  //   with (_ctx) {
+  //     const {
+  //       renderList: _renderList,
+  //       Fragment: _Fragment,
+  //       openBlock: _openBlock,
+  //       createElementBlock: _createElementBlock,
+  //       toDisplayString: _toDisplayString,
+  //       createElementVNode: _createElementVNode,
+  //       createTextVNode: _createTextVNode,
+  //     } = _Vue
+
+  //     return (
+  //       _openBlock(true),
+  //       _createElementBlock(
+  //         _Fragment,
+  //         null,
+  //         _renderList([1, 2, 3], (i, index) => {
+  //           return (
+  //             _openBlock(),
+  //             _createElementBlock('div', { key: index }, [
+  //               _createTextVNode(
+  //                 _toDisplayString(message + i) + ' ',
+  //                 1 /* TEXT */,
+  //               ),
+  //               _hoisted_1,
+  //             ])
+  //           )
+  //         }),
+  //         128 /* KEYED_FRAGMENT */,
+  //       )
+  //     )
+  //   }
+  // }
 }
 
 function genFunctionPreamble(ast: RootNode, context: CodegenContext) {
