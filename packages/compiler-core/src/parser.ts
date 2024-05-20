@@ -917,15 +917,23 @@ function addNode(node: TemplateChildNode) {
   ;(stack[0] || currentRoot).children.push(node)
 }
 
+// 这段代码的作用是在编译器中获取代码片段的位置和源代码。如果提供了结束位置，它将返回从开始位置到结束位置的源代码片段；
+// 否则，它将返回从开始位置开始的所有源代码。这对于错误处理和调试非常有用。
+// 定义一个名为getLoc的函数，该函数接受两个参数：开始位置start和结束位置end（可选）
 function getLoc(start: number, end?: number): SourceLocation {
+  // 返回一个对象，该对象包含三个属性：开始位置、结束位置和源代码片段
   return {
+    // 获取开始位置
     start: tokenizer.getPos(start),
     // @ts-expect-error allow late attachment
+    // 如果没有提供结束位置，则结束位置为null；否则，获取结束位置
     end: end == null ? end : tokenizer.getPos(end),
     // @ts-expect-error allow late attachment
+    // 如果没有提供结束位置，则源代码片段为null；否则，获取从开始位置到结束位置的源代码片段
     source: end == null ? end : getSlice(start, end),
-  }
+  };
 }
+
 
 function setLocEnd(loc: SourceLocation, end: number) {
   loc.end = tokenizer.getPos(end)
@@ -1025,11 +1033,21 @@ function reset() {
   stack.length = 0
 }
 
+// 导出一个名为baseParse的函数，该函数接受两个参数：
+// input: 字符串类型的输入，表示要解析的字符串
+// options: 可选的ParserOptions类型参数，包含一些解析选项
 export function baseParse(input: string, options?: ParserOptions): RootNode {
+  // 重置当前的解析状态
   reset()
+  
+  // 将input赋值给全局变量currentInput，用于在整个解析过程中使用
   currentInput = input
+  
+  // 将解析选项赋值给全局变量currentOptions，并与默认解析选项合并
   currentOptions = extend({}, defaultParserOptions)
 
+  // 如果提供了解析选项，则遍历每个选项并检查是否有值
+  // 如果有值，则更新全局解析选项
   if (options) {
     let key: keyof ParserOptions
     for (key in options) {
@@ -1040,6 +1058,9 @@ export function baseParse(input: string, options?: ParserOptions): RootNode {
     }
   }
 
+  // 如果在开发环境下，根据不同的构建环境进行不同的处理
+  // 如果是非浏览器环境，且decodeEntities选项被设置，则打印警告
+  // 如果是浏览器环境，且decodeEntities选项没有被设置，则抛出错误
   if (__DEV__) {
     if (!__BROWSER__ && currentOptions.decodeEntities) {
       console.warn(
@@ -1053,6 +1074,7 @@ export function baseParse(input: string, options?: ParserOptions): RootNode {
     }
   }
 
+  // 根据解析模式设置tokenizer的模式
   tokenizer.mode =
     currentOptions.parseMode === 'html'
       ? ParseMode.HTML
@@ -1060,52 +1082,34 @@ export function baseParse(input: string, options?: ParserOptions): RootNode {
         ? ParseMode.SFC
         : ParseMode.BASE
 
+  // 如果命名空间是SVG或MathML，则将tokenizer设为InXML模式
   tokenizer.inXML =
     currentOptions.ns === Namespaces.SVG ||
     currentOptions.ns === Namespaces.MATH_ML
 
+  // 如果提供了分隔符选项，则更新tokenizer的分隔符
   const delimiters = options && options.delimiters
   if (delimiters) {
     tokenizer.delimiterOpen = toCharCodes(delimiters[0])
     tokenizer.delimiterClose = toCharCodes(delimiters[1])
   }
-  //关键的一步createRoot:string模板-》ast
+
+  // 创建根节点，并将其赋值给全局变量currentRoot
   const root = (currentRoot = createRoot([], input))
-  console.log(
-    root,
-    ' root = (currentRoot = createRoot([], input))',
-    currentInput,
-  )
-
+  
+  // 使用tokenizer解析输入字符串
   tokenizer.parse(currentInput)
-  console.log(currentInput, root.children, 'tokenizer.parse(currentInput)')
+  
+  // 计算根节点的位置并赋值
   root.loc = getLoc(0, input.length)
-
+  
+  // 合并根节点的子节点的空白字符，并重新赋值给根节点的子节点
   root.children = condenseWhitespace(root.children)
-  console.log(root.children, ' condenseWhitespace(root.children)')
-  // 处理一个模板中的子节点（nodes），根据给定的标签（tag）和当前的选项（currentOptions），去除或缩减不必要的空白字符
-  //   1参数解析：
-  //    nodes: 模板的子节点数组，这些节点可能包含文本、注释或元素。
-  //    tag: 当前处理的标签名，这可能用于特定处理，比如预格式化文本（<pre>标签）。
-  // 2选项处理：
-  //    currentOptions.whitespace !== 'preserve': 这个条件判断用来确定是否应该缩减空白。如果选项不是保留空白（'preserve'），则进行空白缩减处理。
-  // 3变量初始化：
-  // shouldCondense: 根据当前选项确定是否需要缩减空白。
-  // removedWhitespace: 记录是否移除了空白节点。
-  // 4遍历子节点：
-  // 对于数组中的每个节点：
-  // 如果节点类型是TEXT（文本节点），进行进一步处理。
-  // 如果当前不在预格式化文本内（inPre），执行以下步骤：
-  // 使用isAllWhitespace函数检查节点内容是否全是空白字符。
-  // 判断是否需要移除节点：
-  // 如果节点是第一个或最后一个，或者在缩减模式下满足特定的条件（例如，位于两个注释之间，或者位于注释和元素之间，或者位于两个元素之间并包含换行符），则移除该节点。
-  // 否则，将空白缩减为一个空格。
-  // 如果在预格式化文本内（inPre），则替换Windows新行字符（\r\n）为普通新行字符（\n）。
-  // 5处理<pre>标签：
-  // 如果当前在预格式化文本内（inPre）并且有指定的标签（tag），则根据HTML规范移除开头的换行符。
-  // 6返回处理后的节点数组：
-  // 如果移除了空白节点（removedWhitespace为true），则过滤掉所有值为null的节点，即移除了空白节点的数组。
-  // 否则，返回未经变化的原始节点数组。
+  
+  // 重置全局的currentRoot变量
   currentRoot = null
+  
+  // 返回解析得到的根节点
   return root
 }
+

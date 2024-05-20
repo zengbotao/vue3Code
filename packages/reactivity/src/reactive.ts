@@ -239,44 +239,56 @@ export function shallowReadonly<T extends object>(target: T): Readonly<T> {
   )
 }
 
+// 创建一个可响应对象
 function createReactiveObject(
-  target: Target,
-  isReadonly: boolean,
-  baseHandlers: ProxyHandler<any>,
-  collectionHandlers: ProxyHandler<any>,
-  proxyMap: WeakMap<Target, any>,
+  target: Target, // 目标对象
+  isReadonly: boolean, // 是否只读
+  baseHandlers: ProxyHandler<any>, // 基本处理器
+  collectionHandlers: ProxyHandler<any>, // 集合处理器
+  proxyMap: WeakMap<Target, any>, // 代理映射
 ) {
+  // 如果目标不是对象，则打印警告并返回目标
   if (!isObject(target)) {
     if (__DEV__) {
       warn(`value cannot be made reactive: ${String(target)}`)
     }
     return target
   }
-  // target is already a Proxy, return it.
-  // exception: calling readonly() on a reactive object
+  
+  // 如果目标已经是一个 Proxy，且不是只读或不可响应，则返回目标
+  // 例外：对一个可响应对象调用 readonly()
   if (
     target[ReactiveFlags.RAW] &&
     !(isReadonly && target[ReactiveFlags.IS_REACTIVE])
   ) {
     return target
   }
-  // target already has corresponding Proxy
+  
+  // 如果目标已经有一个相应的 Proxy，则返回该 Proxy
   const existingProxy = proxyMap.get(target)
   if (existingProxy) {
     return existingProxy
   }
-  // only specific value types can be observed.
+  
+  // 只有特定的值类型可以被观察
   const targetType = getTargetType(target)
   if (targetType === TargetType.INVALID) {
     return target
   }
+  
+  // 根据目标类型的不同，使用不同的处理器创建新的 Proxy
   const proxy = new Proxy(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers,
   )
+  
+  // 将新创建的 Proxy 存储在 proxyMap 中
   proxyMap.set(target, proxy)
+  
+  // 返回新的 Proxy
   return proxy
 }
+
 
 /**
  * Checks if an object is a proxy created by {@link reactive()} or
@@ -352,7 +364,7 @@ export function isProxy(value: any): boolean {
  *
  * console.log(toRaw(reactiveFoo) === foo) // true
  * ```
- *
+ *  根据一个 Vue 创建的代理返回其原始对象。
  * @param observed - The object for which the "raw" value is requested.
  * @see {@link https://vuejs.org/api/reactivity-advanced.html#toraw}
  */

@@ -152,6 +152,8 @@ export function createTransformContext(
   }: TransformOptions,
 ): TransformContext {
   const nameMatch = filename.replace(/\?.*$/, '').match(/([^/\\]+)\.\w+$/)
+
+  // TransformContext是一个上下文对象，它包含了模板编译时的所有必要信息和方法。
   const context: TransformContext = {
     // options
     filename,
@@ -488,6 +490,7 @@ export function traverseNode(
   }
 }
 
+// 返回的函数处理模板节点
 export function createStructuralDirectiveTransform(
   name: string | RegExp,
   fn: StructuralDirectiveTransform,
